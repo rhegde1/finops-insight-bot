@@ -143,7 +143,7 @@ resource "azurerm_cognitive_account" "ai_services" {
   name                  = local.ai_services_name
   location              = azurerm_resource_group.main.location
   resource_group_name   = azurerm_resource_group.main.name
-  kind                  = "AIServices"
+  kind                  = "OpenAI"
   sku_name              = "S0"
   custom_subdomain_name = local.ai_services_name
 
