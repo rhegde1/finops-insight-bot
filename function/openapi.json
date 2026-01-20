@@ -1,0 +1,435 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FinOps Cost Agent API",
+    "description": "Azure Cost Management query API for the FinOps Cost Agent",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "{functionAppUrl}/api",
+      "description": "Azure Function App",
+      "variables": {
+        "functionAppUrl": {
+          "default": "https://your-function-app.azurewebsites.net"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_check",
+        "summary": "Health check endpoint",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "version": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cost/summary": {
+      "post": {
+        "operationId": "get_cost_summary",
+        "summary": "Get cost summary for the subscription",
+        "description": "Returns a summary of Azure costs, optionally grouped by a dimension",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostSummaryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cost summary response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/cost/top": {
+      "post": {
+        "operationId": "get_top_costs",
+        "summary": "Get top N most expensive items",
+        "description": "Returns the top N most expensive resources, services, or resource groups",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostTopRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Top costs response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/cost/byTag": {
+      "post": {
+        "operationId": "get_costs_by_tag",
+        "summary": "Get costs grouped by a tag",
+        "description": "Returns costs grouped by a specific tag key",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostByTagRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Costs by tag response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
+    "/cost/delta": {
+      "post": {
+        "operationId": "get_cost_delta",
+        "summary": "Compare costs between two periods",
+        "description": "Returns a comparison of costs between the current period and a previous period",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CostDeltaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cost delta response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CostDeltaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Timeframe": {
+        "type": "string",
+        "enum": ["Last7Days", "Last30Days", "MonthToDate", "PreviousMonth", "Custom"],
+        "description": "Predefined time range for the query"
+      },
+      "GroupBy": {
+        "type": "string",
+        "enum": ["ResourceGroup", "ServiceName", "Resource", "Tag"],
+        "description": "Dimension to group costs by"
+      },
+      "CostSummaryRequest": {
+        "type": "object",
+        "required": ["timeframe"],
+        "properties": {
+          "timeframe": {
+            "$ref": "#/components/schemas/Timeframe"
+          },
+          "from": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date for Custom timeframe (YYYY-MM-DD)"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "description": "End date for Custom timeframe (YYYY-MM-DD)"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/GroupBy"
+          }
+        }
+      },
+      "CostTopRequest": {
+        "type": "object",
+        "required": ["timeframe"],
+        "properties": {
+          "timeframe": {
+            "$ref": "#/components/schemas/Timeframe"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/GroupBy"
+          },
+          "top": {
+            "type": "integer",
+            "default": 10,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Number of results to return"
+          }
+        }
+      },
+      "CostByTagRequest": {
+        "type": "object",
+        "required": ["timeframe", "tagKey"],
+        "properties": {
+          "timeframe": {
+            "$ref": "#/components/schemas/Timeframe"
+          },
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "tagKey": {
+            "type": "string",
+            "description": "The tag key to group by (e.g., 'environment', 'costcenter')"
+          }
+        }
+      },
+      "CostDeltaRequest": {
+        "type": "object",
+        "required": ["currentPeriod", "comparisonPeriod"],
+        "properties": {
+          "currentPeriod": {
+            "type": "string",
+            "enum": ["Last7Days", "Last30Days", "MonthToDate"],
+            "description": "The current/recent period"
+          },
+          "comparisonPeriod": {
+            "type": "string",
+            "enum": ["Previous7Days", "Previous30Days", "PreviousMonth"],
+            "description": "The historical period to compare against"
+          },
+          "groupBy": {
+            "$ref": "#/components/schemas/GroupBy"
+          }
+        }
+      },
+      "CostRow": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the resource/group/service"
+          },
+          "cost": {
+            "type": "number",
+            "format": "double",
+            "description": "Cost amount"
+          },
+          "currency": {
+            "type": "string",
+            "description": "Currency code (e.g., USD)"
+          }
+        }
+      },
+      "CostResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "timeframe": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "from": { "type": "string", "format": "date" },
+              "to": { "type": "string", "format": "date" }
+            }
+          },
+          "scope": {
+            "type": "string",
+            "description": "Azure scope queried"
+          },
+          "total": {
+            "type": "object",
+            "properties": {
+              "cost": { "type": "number" },
+              "currency": { "type": "string" }
+            }
+          },
+          "breakdown": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CostRow"
+            }
+          },
+          "groupedBy": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "query_time_ms": { "type": "integer" },
+              "row_count": { "type": "integer" }
+            }
+          }
+        }
+      },
+      "CostDeltaResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "currentPeriod": {
+            "type": "object",
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "total": { "type": "number" }
+            }
+          },
+          "comparisonPeriod": {
+            "type": "object",
+            "properties": {
+              "from": { "type": "string" },
+              "to": { "type": "string" },
+              "total": { "type": "number" }
+            }
+          },
+          "delta": {
+            "type": "object",
+            "properties": {
+              "absolute": { "type": "number" },
+              "percentage": { "type": "number" },
+              "direction": {
+                "type": "string",
+                "enum": ["increase", "decrease", "unchanged"]
+              }
+            }
+          },
+          "breakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "current": { "type": "number" },
+                "previous": { "type": "number" },
+                "delta": { "type": "number" },
+                "percentageChange": { "type": "number" }
+              }
+            }
+          },
+          "currency": {
+            "type": "string"
+          },
+          "groupedBy": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request parameters",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalError": {
+        "description": "Internal server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  }
+}
