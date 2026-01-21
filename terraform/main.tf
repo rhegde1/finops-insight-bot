@@ -143,7 +143,7 @@ resource "azurerm_cognitive_account" "ai_services" {
   name                  = local.ai_services_name
   location              = azurerm_resource_group.main.location
   resource_group_name   = azurerm_resource_group.main.name
-  kind                  = "OpenAI"
+  kind                  = "AIServices"
   sku_name              = "S0"
   custom_subdomain_name = local.ai_services_name
 
@@ -156,7 +156,7 @@ resource "azurerm_cognitive_account" "ai_services" {
 
 # Store AI Services API key in Key Vault
 resource "azurerm_key_vault_secret" "ai_services_key" {
-  name         = "ai-services-api-key"
+  name         = "ai-services-api-key-1"
   value        = azurerm_cognitive_account.ai_services.primary_access_key
   key_vault_id = azurerm_key_vault.main.id
 
@@ -226,7 +226,7 @@ resource "azapi_resource" "ai_project" {
   body = jsonencode({
     kind = "Project"
     properties = {
-      friendlyName        = "${var.prefix} FinOps Project"
+      friendlyName        = "${var.prefix} Cost Project"
       description         = "Azure AI Foundry Project for FinOps Cost Agent"
       hubResourceId       = azapi_resource.ai_hub.id
       publicNetworkAccess = "Enabled"
@@ -248,7 +248,7 @@ resource "azapi_resource" "ai_project" {
 
 # Read AI Services API key from Key Vault
 data "azurerm_key_vault_secret" "ai_services_key" {
-  name         = "ai-services-api-key"
+  name         = "ai-services-api-key-1"
   key_vault_id = azurerm_key_vault.main.id
 
   depends_on = [
@@ -263,7 +263,7 @@ resource "azapi_resource" "ai_services_connection" {
 
   body = jsonencode({
     properties = {
-      category      = "OpenAI"
+      category      = "AIServices"
       target        = azurerm_cognitive_account.ai_services.endpoint
       authType      = "ApiKey"
       isSharedToAll = true

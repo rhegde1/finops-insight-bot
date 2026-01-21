@@ -53,7 +53,7 @@ winget install stedolan.jq
 ```bash
 # 1. Clone and configure
 git clone <this-repo>
-cd azure-ai-foundry-finops
+cd finops-insight-bot
 cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 # Edit terraform/terraform.tfvars with your subscription_id and tenant_id
 
@@ -67,14 +67,19 @@ terraform init
 terraform plan -out=tfplan
 terraform apply tfplan
 
-# 4. Deploy model and function
+# 4. Deploy Function App (must be done before agent)
 cd ..
-chmod +x scripts/*.sh
-./scripts/deploy-model.sh
+npm install  # Install archiver package for deployment
 ./scripts/deploy-function.sh
-./scripts/create-agent.sh
 
-# 5. Test the API
+# 5. Deploy AI Agent with Python function tools
+pip install azure-ai-projects azure-identity requests
+python scripts/deploy-agent.py
+
+# 6. Test the agent
+python scripts/test-agent.py
+
+# 7. Test the API directly
 FUNC_URL=$(cd terraform && terraform output -raw function_app_url)
 curl "$FUNC_URL/api/health"
 ```
@@ -181,30 +186,55 @@ terraform apply tfplan
 terraform output
 ```
 
-### Step 3: Deploy the AI Model
+**Note:** Terraform automatically deploys the AI model (gpt-4o-mini) during infrastructure provisioning.
+
+### Step 3: Install Node.js Dependencies
+
+The Function App deployment requires the `archiver` package for creating deployment archives.
 
 ```bash
 cd ..
-./scripts/deploy-model.sh
+npm install
 ```
 
-This deploys `gpt-4o-mini` to Azure AI Services.
-
 ### Step 4: Deploy Function App Code
+
+**IMPORTANT:** Deploy the Function App **BEFORE** the agent, as the agent needs the function endpoints to be available.
 
 ```bash
 ./scripts/deploy-function.sh
 ```
 
-This builds and deploys the TypeScript functions.
+This builds the TypeScript functions and deploys them to Azure Functions.
 
-### Step 5: Create the AI Agent
+### Step 5: Install Python Dependencies
+
+The agent deployment uses Python-based function tools.
 
 ```bash
-./scripts/create-agent.sh
+pip install azure-ai-projects azure-identity requests
 ```
 
-This outputs instructions for creating the agent in Azure AI Foundry portal.
+### Step 6: Deploy the AI Agent
+
+```bash
+python scripts/deploy-agent.py
+```
+
+This script:
+- Creates an Azure AI Agent with Python-based function tools
+- Configures the agent to call your deployed Azure Functions
+- Saves the agent ID to `agent-deployment.json`
+
+The agent uses **FunctionTool** with Python wrapper functions that call your Azure Functions endpoints, ensuring it returns real cost data instead of hallucinating responses.
+
+### Step 7: Test the Agent
+
+```bash
+python scripts/test-agent.py
+```
+
+This verifies the agent is calling the actual Azure Functions and returning accurate cost data.
 
 ## 🧪 Testing the API
 
@@ -267,11 +297,39 @@ curl -X POST "$FUNC_URL/api/cost/delta" \
   }' | jq
 ```
 
-## 💬 Test Chat Examples
+## 💬 Test the Agent
 
-Once the agent is configured in Azure AI Foundry, try these prompts:
+### Testing via Azure AI Foundry Portal
 
-### Basic Cost Queries
+1. Go to https://ai.azure.com
+2. Select your project (e.g., `finops-project-xxxxx`)
+3. Navigate to **Agent management**
+4. Find your agent (e.g., `finops-project-xxxxx-finops-agent`)
+5. Start a chat and test with questions like:
+   - "What were my costs last month?"
+   - "Show me the top 5 most expensive resources"
+   - "Compare this week to last week"
+
+**Expected Behavior:**
+- ✅ Agent returns **accurate cost data** from your subscription
+- ❌ If the agent returns hallucinated data (e.g., $2500 when your costs are ~$150), redeploy using `python scripts/deploy-agent.py`
+
+### Testing Programmatically
+
+```bash
+python scripts/test-agent.py
+```
+
+This script:
+- Connects to your deployed agent
+- Sends a test query about last 30 days costs
+- Validates the response is from real function calls (not hallucinated)
+
+### Example Chat Prompts
+
+Once the agent is configured, try these prompts:
+
+#### Basic Cost Queries
 
 1. **"What did we spend last month?"**
    - Agent calls `get_cost_summary` with `PreviousMonth`
@@ -284,7 +342,7 @@ Once the agent is configured in Azure AI Foundry, try these prompts:
 3. **"Break down our costs by resource group for the past 30 days"**
    - Agent calls `get_cost_summary` with `Last30Days`, `groupBy=ResourceGroup`
 
-### Tag-Based Analysis
+#### Tag-Based Analysis
 
 4. **"What's the cost breakdown by environment tag?"**
    - Agent calls `get_costs_by_tag` with `tagKey=environment`
@@ -293,7 +351,7 @@ Once the agent is configured in Azure AI Foundry, try these prompts:
 5. **"Show me costs for the 'costcenter' tag last month"**
    - Agent calls `get_costs_by_tag` with `PreviousMonth`, `tagKey=costcenter`
 
-### Trend Analysis
+#### Trend Analysis
 
 6. **"How do this week's costs compare to last week?"**
    - Agent calls `get_cost_delta` with `Last7Days` vs `Previous7Days`
@@ -365,9 +423,11 @@ resource "azurerm_monitor_metric_alert" "high_cost" {
 
 1. **Subscription Scope Only**: The cost API queries are limited to subscription scope. Resource group or management group scopes require code changes.
 
-2. **Agent Manual Setup**: Azure AI Foundry Agents are in preview and require manual configuration through the portal or SDK.
+2. **Python-Based Function Tools**: The agent uses Python wrapper functions that call Azure Functions. This requires the agent runtime environment to have network access to the Function App.
 
 3. **No Real-time Data**: Azure Cost Management data has a delay of up to 24 hours.
+
+4. **Agent Tool Execution**: Azure AI Agents SDK requires proper FunctionTool implementation with ToolSet to avoid hallucinating responses.
 
 4. **Model Deployment via CLI**: The AI model deployment uses Azure CLI as azurerm doesn't fully support Azure AI Services deployments.
 

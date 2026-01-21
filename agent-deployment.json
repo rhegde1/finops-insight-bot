@@ -1,0 +1,7 @@
+{
+  "agent_id": "asst_A4hmHfXflUZoMOe5xKVroQyF",
+  "agent_name": "finops-project-jqhwi5-finops-agent",
+  "model": "finops-chat",
+  "created_at": "2026-01-21 17:42:50+00:00",
+  "tools": "Server-side HTTP function tools"
+}

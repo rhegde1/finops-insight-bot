@@ -4,7 +4,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.100.0"
+      version = "~> 4.57.0"
     }
     azapi = {
       source  = "Azure/azapi"
@@ -21,6 +21,6 @@ terraform {
     resource_group_name  = "tf-aks-demo-rg"
     storage_account_name = "tfstatetfaksdemo"
     container_name       = "tfstatecontainer"
-    key                  = "terraform.finops.tfstate"
+    key                  = "terraform.aifinops.tfstate"
   }
 }
