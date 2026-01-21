@@ -198,17 +198,17 @@ output "cost_api_endpoints" {
 output "script_variables" {
   description = "Variables for use in deployment scripts"
   value = {
-    subscription_id    = var.subscription_id
-    resource_group     = azurerm_resource_group.main.name
-    location           = var.location
-    ai_services_name   = azurerm_cognitive_account.ai_services.name
-    hub_name           = azapi_resource.ai_hub.name
-    project_name       = azapi_resource.ai_project.name
-    function_app_name  = azurerm_linux_function_app.main.name
-    function_app_url   = "https://${azurerm_linux_function_app.main.default_hostname}"
-    model_name         = var.foundry_model_name
-    deployment_name    = var.foundry_deployment_name
-    model_version      = var.foundry_model_version
+    subscription_id   = var.subscription_id
+    resource_group    = azurerm_resource_group.main.name
+    location          = var.location
+    ai_services_name  = azurerm_cognitive_account.ai_services.name
+    hub_name          = azapi_resource.ai_hub.name
+    project_name      = azapi_resource.ai_project.name
+    function_app_name = azurerm_linux_function_app.main.name
+    function_app_url  = "https://${azurerm_linux_function_app.main.default_hostname}"
+    model_name        = var.foundry_model_name
+    deployment_name   = var.foundry_deployment_name
+    model_version     = var.foundry_model_version
   }
 }
 

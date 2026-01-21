@@ -71,8 +71,8 @@ variable "foundry_model_version" {
 
 variable "function_app_sku" {
   type        = string
-  description = "SKU for Function App (Y1 for Consumption, EP1-3 for Premium)"
-  default     = "Y1"
+  description = "SKU for Function App (B1-B3 for Basic, S1-S3 for Standard, EP1-3 for Premium)"
+  default     = "B1"
 }
 
 variable "function_runtime_version" {
@@ -112,18 +112,18 @@ locals {
   resource_suffix = random_string.suffix.result
 
   # Standard resource naming
-  resource_group_name     = "${var.prefix}-rg-${local.resource_suffix}"
-  log_analytics_name      = "${var.prefix}-log-${local.resource_suffix}"
-  app_insights_name       = "${var.prefix}-appi-${local.resource_suffix}"
-  storage_account_name    = "${var.prefix}st${local.resource_suffix}"
-  func_storage_name       = "${var.prefix}stfunc${local.resource_suffix}"
-  key_vault_name          = "${var.prefix}-kv-${local.resource_suffix}"
-  managed_identity_name   = "${var.prefix}-id-func-${local.resource_suffix}"
-  function_app_name       = "${var.prefix}-func-${local.resource_suffix}"
-  app_service_plan_name   = "${var.prefix}-asp-${local.resource_suffix}"
-  ai_services_name        = "${var.prefix}-ai-${local.resource_suffix}"
-  foundry_hub_name        = "${var.prefix}-hub-${local.resource_suffix}"
-  foundry_project_name    = "${var.prefix}-project-${local.resource_suffix}"
+  resource_group_name   = "${var.prefix}-rg-${local.resource_suffix}"
+  log_analytics_name    = "${var.prefix}-log-${local.resource_suffix}"
+  app_insights_name     = "${var.prefix}-appi-${local.resource_suffix}"
+  storage_account_name  = "${var.prefix}st${local.resource_suffix}"
+  func_storage_name     = "${var.prefix}stfunc${local.resource_suffix}"
+  key_vault_name        = "${var.prefix}-kv-${local.resource_suffix}"
+  managed_identity_name = "${var.prefix}-id-func-${local.resource_suffix}"
+  function_app_name     = "${var.prefix}-func-${local.resource_suffix}"
+  app_service_plan_name = "${var.prefix}-asp-${local.resource_suffix}"
+  ai_services_name      = "${var.prefix}-ai-${local.resource_suffix}"
+  foundry_hub_name      = "${var.prefix}-hub-${local.resource_suffix}"
+  foundry_project_name  = "${var.prefix}-project-${local.resource_suffix}"
 
   # Common tags
   common_tags = merge(var.tags, {

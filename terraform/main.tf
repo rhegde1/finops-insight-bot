@@ -106,14 +106,14 @@ resource "azurerm_storage_account" "functions" {
 # ==============================================================================
 
 resource "azurerm_key_vault" "main" {
-  name                        = local.key_vault_name
-  location                    = azurerm_resource_group.main.location
-  resource_group_name         = azurerm_resource_group.main.name
-  tenant_id                   = var.tenant_id
-  sku_name                    = "standard"
-  soft_delete_retention_days  = 7
-  purge_protection_enabled    = false # Demo only - enable for production
-  enable_rbac_authorization   = true  # Using RBAC instead of access policies
+  name                       = local.key_vault_name
+  location                   = azurerm_resource_group.main.location
+  resource_group_name        = azurerm_resource_group.main.name
+  tenant_id                  = var.tenant_id
+  sku_name                   = "standard"
+  soft_delete_retention_days = 7
+  purge_protection_enabled   = false # Demo only - enable for production
+  enable_rbac_authorization  = true  # Using RBAC instead of access policies
 
   # Network rules - public for demo
   network_acls {
@@ -143,7 +143,7 @@ resource "azurerm_cognitive_account" "ai_services" {
   name                  = local.ai_services_name
   location              = azurerm_resource_group.main.location
   resource_group_name   = azurerm_resource_group.main.name
-  kind                  = "AIServices"
+  kind                  = "OpenAI"
   sku_name              = "S0"
   custom_subdomain_name = local.ai_services_name
 
@@ -154,12 +154,24 @@ resource "azurerm_cognitive_account" "ai_services" {
   tags = local.common_tags
 }
 
+# Store AI Services API key in Key Vault
+resource "azurerm_key_vault_secret" "ai_services_key" {
+  name         = "ai-services-api-key"
+  value        = azurerm_cognitive_account.ai_services.primary_access_key
+  key_vault_id = azurerm_key_vault.main.id
+
+  depends_on = [
+    azurerm_role_assignment.current_user_keyvault,
+    azurerm_cognitive_account.ai_services
+  ]
+}
+
 # ==============================================================================
 # Azure AI Foundry Hub (via AzAPI - not fully supported in azurerm)
 # ==============================================================================
 
 resource "azapi_resource" "ai_hub" {
-  type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01"
+  type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
   name      = local.foundry_hub_name
   location  = azurerm_resource_group.main.location
   parent_id = azurerm_resource_group.main.id
@@ -171,13 +183,13 @@ resource "azapi_resource" "ai_hub" {
   body = jsonencode({
     kind = "Hub"
     properties = {
-      friendlyName               = "${var.prefix} AI Foundry Hub"
-      description                = "Azure AI Foundry Hub for FinOps Cost Agent demo"
-      storageAccount             = azurerm_storage_account.main.id
-      keyVault                   = azurerm_key_vault.main.id
-      applicationInsights        = azurerm_application_insights.main.id
-      publicNetworkAccess        = "Enabled"
-      v1LegacyMode               = false
+      friendlyName        = "${var.prefix} AI Foundry Hub"
+      description         = "Azure AI Foundry Hub for FinOps Cost Agent demo"
+      storageAccount      = azurerm_storage_account.main.id
+      keyVault            = azurerm_key_vault.main.id
+      applicationInsights = azurerm_application_insights.main.id
+      publicNetworkAccess = "Enabled"
+      v1LegacyMode        = false
       managedNetwork = {
         isolationMode = "Disabled" # Demo - use AllowInternetOutbound for production
       }
@@ -202,7 +214,7 @@ resource "azapi_resource" "ai_hub" {
 # ==============================================================================
 
 resource "azapi_resource" "ai_project" {
-  type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01"
+  type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
   name      = local.foundry_project_name
   location  = azurerm_resource_group.main.location
   parent_id = azurerm_resource_group.main.id
@@ -234,17 +246,30 @@ resource "azapi_resource" "ai_project" {
 # AI Services Connection to Hub
 # ==============================================================================
 
+# Read AI Services API key from Key Vault
+data "azurerm_key_vault_secret" "ai_services_key" {
+  name         = "ai-services-api-key"
+  key_vault_id = azurerm_key_vault.main.id
+
+  depends_on = [
+    azurerm_key_vault_secret.ai_services_key
+  ]
+}
+
 resource "azapi_resource" "ai_services_connection" {
-  type      = "Microsoft.MachineLearningServices/workspaces/connections@2024-04-01"
+  type      = "Microsoft.MachineLearningServices/workspaces/connections@2024-04-01-preview"
   name      = "ai-services-connection"
   parent_id = azapi_resource.ai_hub.id
 
   body = jsonencode({
     properties = {
-      category      = "AIServices"
+      category      = "OpenAI"
       target        = azurerm_cognitive_account.ai_services.endpoint
-      authType      = "AAD"
+      authType      = "ApiKey"
       isSharedToAll = true
+      credentials = {
+        key = data.azurerm_key_vault_secret.ai_services_key.value
+      }
       metadata = {
         ApiType    = "Azure"
         ResourceId = azurerm_cognitive_account.ai_services.id
@@ -254,7 +279,8 @@ resource "azapi_resource" "ai_services_connection" {
 
   depends_on = [
     azapi_resource.ai_hub,
-    azurerm_cognitive_account.ai_services
+    azurerm_cognitive_account.ai_services,
+    data.azurerm_key_vault_secret.ai_services_key
   ]
 }
 
@@ -267,7 +293,7 @@ resource "azurerm_service_plan" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   os_type             = "Linux"
-  sku_name            = var.function_app_sku
+  sku_name            = "B2"  # Basic tier with 3.5 GB RAM, 2 vCores
   tags                = local.common_tags
 }
 
@@ -308,7 +334,7 @@ resource "azurerm_linux_function_app" "main" {
     "ALLOWED_ORIGINS"                = "*"
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
     "ENABLE_ORYX_BUILD"              = "true"
-    
+
     # Key Vault reference for function key (if needed)
     # "FUNCTION_APP_KEY" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/function-app-key/)"
   }
@@ -330,6 +356,10 @@ resource "azurerm_role_assignment" "function_cost_reader" {
   scope                = "/subscriptions/${var.subscription_id}"
   role_definition_name = "Cost Management Reader"
   principal_id         = azurerm_user_assigned_identity.function.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Function App identity -> Reader at subscription scope
@@ -337,6 +367,10 @@ resource "azurerm_role_assignment" "function_reader" {
   scope                = "/subscriptions/${var.subscription_id}"
   role_definition_name = "Reader"
   principal_id         = azurerm_user_assigned_identity.function.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Function App identity -> Key Vault Secrets User
@@ -344,6 +378,10 @@ resource "azurerm_role_assignment" "function_keyvault" {
   scope                = azurerm_key_vault.main.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.function.principal_id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Current user -> Key Vault Administrator (for managing secrets)

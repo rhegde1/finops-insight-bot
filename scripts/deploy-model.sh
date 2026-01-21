@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Deploy AI Model to Azure AI Services
 # ==============================================================================
@@ -13,7 +13,8 @@
 #   - Cognitive Services OpenAI Contributor role on AI Services
 # ==============================================================================
 
-set -euo pipefail
+set -Eeuo pipefail
+set -o pipefail
 
 # Colors for output
 RED='\033[0;31m'
