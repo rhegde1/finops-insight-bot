@@ -58,7 +58,7 @@ cd "$FUNCTION_DIR"
 
 # Install dependencies
 log_info "Installing dependencies..."
-npm ci
+npm install
 
 # Build TypeScript
 log_info "Compiling TypeScript..."
@@ -81,9 +81,13 @@ cp -r node_modules "$DEPLOY_DIR/"
 cp host.json "$DEPLOY_DIR/"
 cp package.json "$DEPLOY_DIR/"
 
-# Create zip
-cd "$DEPLOY_DIR"
-zip -r "$DEPLOY_ZIP" . > /dev/null
+# Create zip using Node.js utility
+log_info "Packaging files..."
+node "$SCRIPT_DIR/create-zip.cjs" "$DEPLOY_ZIP" "$DEPLOY_DIR"
+if [ $? -ne 0 ]; then
+  log_error "Failed to create zip file"
+  exit 1
+fi
 
 # Deploy using Azure CLI
 log_info "Uploading to Azure..."
