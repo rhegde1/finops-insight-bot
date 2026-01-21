@@ -15,4 +15,12 @@ terraform {
       version = "~> 3.6.0"
     }
   }
+
+  # Remote state stored in Azure Storage (configure via terraform init -backend-config)
+  backend "azurerm" {
+    resource_group_name  = "tf-aks-demo-rg"
+    storage_account_name = "tfstatetfaksdemo"
+    container_name       = "tfstatecontainer"
+    key                  = "terraform.finops.tfstate"
+  }
 }

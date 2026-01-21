@@ -293,7 +293,7 @@ resource "azurerm_service_plan" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   os_type             = "Linux"
-  sku_name            = "B2"  # Basic tier with 3.5 GB RAM, 2 vCores
+  sku_name            = "B2" # Basic tier with 3.5 GB RAM, 2 vCores
   tags                = local.common_tags
 }
 
