@@ -5,6 +5,7 @@
  */
 
 export { health } from './functions/health.js';
+export { healthCost } from './functions/healthCost.js';
 export { costSummary } from './functions/costSummary.js';
 export { costTop } from './functions/costTop.js';
 export { costByTag } from './functions/costByTag.js';
