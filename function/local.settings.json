@@ -5,12 +5,12 @@
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "SUBSCRIPTION_ID": "<your-subscription-id>",
     "AZURE_TENANT_ID": "<your-tenant-id>",
-    "AZURE_CLIENT_ID": "<your-client-id>",
     "COST_API_VERSION": "2023-11-01",
     "ALLOWED_ORIGINS": "*",
     "AZURE_OPENAI_ENDPOINT": "<your-ai-services-endpoint>",
     "AZURE_OPENAI_DEPLOYMENT": "finops-chat",
-    "AZURE_OPENAI_API_VERSION": "2024-10-21"
+    "AZURE_OPENAI_API_VERSION": "2024-10-21",
+    "AZURE_OPENAI_API_KEY": ""
   },
   "Host": {
     "CORS": "*",

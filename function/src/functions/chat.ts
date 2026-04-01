@@ -227,12 +227,22 @@ export async function chat(
       };
     }
 
-    // Get auth token for Azure OpenAI
-    const clientId = process.env.AZURE_CLIENT_ID;
-    const credential = clientId
-      ? new ManagedIdentityCredential(clientId)
-      : new DefaultAzureCredential();
-    const tokenResponse = await credential.getToken('https://cognitiveservices.azure.com/.default');
+    // Get auth headers for Azure OpenAI
+    const apiKey = process.env.AZURE_OPENAI_API_KEY;
+    let authHeaders: Record<string, string>;
+
+    if (apiKey) {
+      // Use API key (local dev / testing)
+      authHeaders = { 'api-key': apiKey };
+    } else {
+      // Use Managed Identity or DefaultAzureCredential (production)
+      const clientId = process.env.AZURE_CLIENT_ID;
+      const credential = clientId
+        ? new ManagedIdentityCredential(clientId)
+        : new DefaultAzureCredential();
+      const tokenResponse = await credential.getToken('https://cognitiveservices.azure.com/.default');
+      authHeaders = { 'Authorization': `Bearer ${tokenResponse.token}` };
+    }
 
     // Build message history
     const messages: ChatMessage[] = [
@@ -262,7 +272,7 @@ export async function chat(
       const chatResponse = await fetch(chatUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${tokenResponse.token}`,
+          ...authHeaders,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

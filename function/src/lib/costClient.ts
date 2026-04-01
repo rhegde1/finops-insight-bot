@@ -302,7 +302,17 @@ export class CostManagementClient {
     // Find column indices
     const costIndex = columns.findIndex((c: any) => c.name === 'Cost');
     const currencyIndex = columns.findIndex((c: any) => c.name === 'Currency');
-    const groupIndex = groupBy ? 0 : -1; // Group column is typically first
+    const groupIndex = groupBy
+      ? columns.findIndex((c: any) =>
+          c.name === groupBy ||
+          c.name === 'ResourceGroup' ||
+          c.name === 'ServiceName' ||
+          c.name === 'ResourceId' ||
+          c.name === 'TagKey' ||
+          c.name === 'TagValue' ||
+          (c.type === 'string' && c.name !== 'Currency')
+        )
+      : -1;
 
     // Calculate total and build breakdown
     let totalCost = 0;
