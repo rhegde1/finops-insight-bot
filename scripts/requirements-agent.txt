@@ -1,6 +1,0 @@
-# Azure AI Agent Deployment Requirements
-# Install with: pip install -r requirements.txt
-
-azure-ai-projects>=1.0.0b1
-azure-identity>=1.15.0
-requests>=2.31.0

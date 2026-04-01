@@ -34,6 +34,7 @@ import {
 } from '@/hooks/useCostData';
 import { TimeframeType, CostApiError } from '@/lib/costApi';
 import { cn } from '@/lib/utils';
+import { ChatBot } from '@/components/ChatBot';
 
 // Polling intervals
 const SUMMARY_POLL_INTERVAL = 30000; // 30 seconds
@@ -385,35 +386,43 @@ export function CostDashboard() {
             />
           </div>
 
-          {/* Detailed View */}
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Top Resources */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Top 5 Most Expensive Resources</CardTitle>
-                <CardDescription>Highest cost resources in the selected period</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TopResourcesTable
-                  data={topData?.breakdown || []}
-                  isLoading={topLoading}
-                />
-              </CardContent>
-            </Card>
+          {/* Detailed View + Chat */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Left: Dashboard panels */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Top Resources */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top 5 Most Expensive Resources</CardTitle>
+                  <CardDescription>Highest cost resources in the selected period</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TopResourcesTable
+                    data={topData?.breakdown || []}
+                    isLoading={topLoading}
+                  />
+                </CardContent>
+              </Card>
 
-            {/* Cost by Service */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Cost by Service</CardTitle>
-                <CardDescription>Breakdown by Azure service type</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TopResourcesTable
-                  data={summaryData?.breakdown?.slice(0, 5) || []}
-                  isLoading={summaryLoading}
-                />
-              </CardContent>
-            </Card>
+              {/* Cost by Service */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cost by Service</CardTitle>
+                  <CardDescription>Breakdown by Azure service type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TopResourcesTable
+                    data={summaryData?.breakdown?.slice(0, 5) || []}
+                    isLoading={summaryLoading}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right: Chat */}
+            <div>
+              <ChatBot />
+            </div>
           </div>
 
           {/* API Health Panel */}

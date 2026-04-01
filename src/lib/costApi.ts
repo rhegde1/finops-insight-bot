@@ -292,5 +292,32 @@ export async function getCostDelta(params: CostDeltaParams): Promise<CostDeltaRe
   return data;
 }
 
+// Chat API
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+export async function sendChatMessage(
+  message: string,
+  history: ChatMessage[] = []
+): Promise<ChatResponse> {
+  const { data } = await instrumentedFetch<ChatResponse>('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ message, history }),
+  });
+  return data;
+}
+
 // Export for testing
 export { instrumentedFetch };

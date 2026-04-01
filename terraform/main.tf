@@ -293,7 +293,7 @@ resource "azurerm_service_plan" "main" {
   location            = azurerm_resource_group.main.location
   resource_group_name = azurerm_resource_group.main.name
   os_type             = "Linux"
-  sku_name            = "B2" # Basic tier with 3.5 GB RAM, 2 vCores
+  sku_name            = var.function_app_sku
   tags                = local.common_tags
 }
 
@@ -335,8 +335,10 @@ resource "azurerm_linux_function_app" "main" {
     "SCM_DO_BUILD_DURING_DEPLOYMENT" = "true"
     "ENABLE_ORYX_BUILD"              = "true"
 
-    # Key Vault reference for function key (if needed)
-    # "FUNCTION_APP_KEY" = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault.main.vault_uri}secrets/function-app-key/)"
+    # Azure OpenAI settings for /api/chat endpoint
+    "AZURE_OPENAI_ENDPOINT"   = azurerm_cognitive_account.ai_services.endpoint
+    "AZURE_OPENAI_DEPLOYMENT" = var.foundry_deployment_name
+    "AZURE_OPENAI_API_VERSION" = "2024-10-21"
   }
 
   tags = local.common_tags
@@ -417,4 +419,11 @@ resource "azurerm_role_assignment" "current_user_openai" {
   scope                = azurerm_cognitive_account.ai_services.id
   role_definition_name = "Cognitive Services OpenAI Contributor"
   principal_id         = data.azurerm_client_config.current.object_id
+}
+
+# Function App identity -> Cognitive Services OpenAI User (for /api/chat endpoint)
+resource "azurerm_role_assignment" "function_openai" {
+  scope                = azurerm_cognitive_account.ai_services.id
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = azurerm_user_assigned_identity.function.principal_id
 }

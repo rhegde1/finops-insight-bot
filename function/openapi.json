@@ -40,6 +40,41 @@
         }
       }
     },
+    "/chat": {
+      "post": {
+        "operationId": "chat",
+        "summary": "Chat with the FinOps Cost Assistant",
+        "description": "Send a natural language message and get a response powered by Azure OpenAI with real cost data from Azure Cost Management",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          }
+        }
+      }
+    },
     "/cost/summary": {
       "post": {
         "operationId": "get_cost_summary",
@@ -405,6 +440,50 @@
           },
           "message": {
             "type": "string"
+          }
+        }
+      },
+      "ChatRequest": {
+        "type": "object",
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "The user's message to the FinOps assistant"
+          },
+          "history": {
+            "type": "array",
+            "description": "Previous conversation messages for context",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["user", "assistant"]
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ChatResponse": {
+        "type": "object",
+        "properties": {
+          "reply": {
+            "type": "string",
+            "description": "The assistant's response with real cost data"
+          },
+          "usage": {
+            "type": "object",
+            "description": "Token usage statistics",
+            "properties": {
+              "prompt_tokens": { "type": "integer" },
+              "completion_tokens": { "type": "integer" },
+              "total_tokens": { "type": "integer" }
+            }
           }
         }
       }

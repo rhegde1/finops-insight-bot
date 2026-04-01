@@ -184,6 +184,7 @@ output "cost_api_endpoints" {
   description = "Available Cost API endpoints"
   value = {
     health  = "https://${azurerm_linux_function_app.main.default_hostname}/api/health"
+    chat    = "https://${azurerm_linux_function_app.main.default_hostname}/api/chat"
     summary = "https://${azurerm_linux_function_app.main.default_hostname}/api/cost/summary"
     top     = "https://${azurerm_linux_function_app.main.default_hostname}/api/cost/top"
     by_tag  = "https://${azurerm_linux_function_app.main.default_hostname}/api/cost/byTag"
