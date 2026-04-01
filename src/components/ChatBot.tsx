@@ -19,6 +19,7 @@ import {
   BarChart3,
   Sparkles,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { sendChatMessage, type ChatMessage } from '@/lib/costApi';
 
 const QUICK_ACTIONS = [
@@ -53,7 +54,7 @@ export function ChatBot() {
     setIsLoading(true);
 
     try {
-      const response = await sendChatMessage(messageText, messages);
+      const response = await sendChatMessage(messageText, updatedHistory);
       setMessages([
         ...updatedHistory,
         { role: 'assistant', content: response.reply },
@@ -126,13 +127,17 @@ export function ChatBot() {
                   </div>
                 )}
                 <div
-                  className={`rounded-lg px-3 py-2 max-w-[85%] text-sm whitespace-pre-wrap ${
+                  className={`rounded-lg px-3 py-2 max-w-[85%] text-sm ${
                     msg.role === 'user'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
+                      ? 'bg-primary text-primary-foreground whitespace-pre-wrap'
+                      : 'bg-muted prose prose-sm max-w-none dark:prose-invert [&_table]:text-xs [&_table]:border-collapse [&_td]:border [&_td]:px-2 [&_td]:py-1 [&_th]:border [&_th]:px-2 [&_th]:py-1'
                   }`}
                 >
-                  {msg.content}
+                  {msg.role === 'assistant' ? (
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  ) : (
+                    msg.content
+                  )}
                 </div>
                 {msg.role === 'user' && (
                   <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-0.5">

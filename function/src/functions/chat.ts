@@ -196,17 +196,6 @@ async function executeTool(
 }
 
 /**
- * Create the Azure OpenAI client using Managed Identity or DefaultAzureCredential.
- */
-function getOpenAIHeaders(token: string, apiVersion: string) {
-  return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-    'api-key': undefined as string | undefined,
-  };
-}
-
-/**
  * Chat endpoint — handles user messages with Azure OpenAI function calling.
  * POST /api/chat
  */
@@ -219,7 +208,7 @@ export async function chat(
   try {
     const body = (await request.json()) as ChatRequest;
 
-    if (!body.message) {
+    if (!body.message || body.message.trim() === '') {
       return {
         status: 400,
         jsonBody: { error: 'Missing required field: message' },
@@ -250,10 +239,11 @@ export async function chat(
       { role: 'system', content: SYSTEM_PROMPT },
     ];
 
-    // Add conversation history if provided
+    // Add conversation history if provided (cap at 50 messages to stay within token limits)
     if (body.history && Array.isArray(body.history)) {
-      for (const msg of body.history) {
-        if (msg.role === 'user' || msg.role === 'assistant') {
+      const recentHistory = body.history.slice(-50);
+      for (const msg of recentHistory) {
+        if ((msg.role === 'user' || msg.role === 'assistant') && typeof msg.content === 'string') {
           messages.push({ role: msg.role, content: msg.content });
         }
       }
@@ -299,10 +289,11 @@ export async function chat(
       const completion = await chatResponse.json() as any;
       const choice = completion.choices?.[0];
 
-      if (!choice) {
+      if (!choice || !choice.message) {
+        context.error(`Invalid OpenAI response structure: ${JSON.stringify(completion)}`);
         return {
           status: 502,
-          jsonBody: { error: 'No response from AI model' },
+          jsonBody: { error: 'Invalid response from AI model' },
         };
       }
 
@@ -322,17 +313,28 @@ export async function chat(
 
         // Execute each tool call and add results
         for (const toolCall of assistantMessage.tool_calls) {
+          let args: Record<string, any>;
           try {
-            const args = JSON.parse(toolCall.function.arguments);
-            const result = await executeTool(toolCall.function.name, args, context);
+            args = JSON.parse(toolCall.function.arguments);
+          } catch (parseError) {
+            context.error(`Failed to parse arguments for ${toolCall.function.name}: ${toolCall.function.arguments}`);
+            messages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: JSON.stringify({ error: `Invalid arguments for ${toolCall.function.name}` }),
+            });
+            continue;
+          }
 
+          try {
+            const result = await executeTool(toolCall.function.name, args, context);
             messages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
               content: JSON.stringify(result),
             });
           } catch (toolError) {
-            context.error(`Tool execution error: ${toolError}`);
+            context.error(`Tool execution error (${toolCall.function.name}): ${toolError}`);
             messages.push({
               role: 'tool',
               tool_call_id: toolCall.id,

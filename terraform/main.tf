@@ -426,4 +426,10 @@ resource "azurerm_role_assignment" "function_openai" {
   scope                = azurerm_cognitive_account.ai_services.id
   role_definition_name = "Cognitive Services OpenAI User"
   principal_id         = azurerm_user_assigned_identity.function.principal_id
+
+  depends_on = [azurerm_linux_function_app.main]
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
